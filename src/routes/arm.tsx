@@ -178,7 +178,7 @@ export default function Arm() {
   const moveCamera2 = (delta: number) => {
     setPos((p) => {
       const next = Math.max(limits.camera[0], Math.min(limits.camera[1], p.joint9 + delta));
-      sendWS({ type: "camera", data: next });
+      sendWS({ type: "camera2", data: next });
       return { ...p, joint9: next };
     });
   };
@@ -417,7 +417,9 @@ export default function Arm() {
                 <span key={k}>{k}: <span className="text-cyan-400">{v.toFixed(1)}</span></span>
               ))}
               <span>cam: <span className="text-cyan-400">{pos.joint8}</span></span>
+              <span>cam2: <span className="text-cyan-400">{pos.joint9}</span></span>
             </div>
+            
             <div className="flex items-center gap-3 text-[10px] text-gray-500 mt-3">
               <div className="flex items-center gap-1">
                 <div className={`w-1.5 h-1.5 rounded-full ${cameraConnected ? "bg-green-400" : "bg-red-400"}`} />
