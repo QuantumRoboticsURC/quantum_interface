@@ -8,7 +8,7 @@ import Control from "./routes/control";
 import Strat from "./routes/stratigraphic";
 import Laboratory from "./routes/laboratory";
 import Autonomous from "./routes/autonomous";
-
+import Cameras from "./routes/cameras";
 
 import "./main.css";
 
@@ -23,7 +23,7 @@ const router = createBrowserRouter([
       { path: "stratigraphic-profile", element: <Strat /> },
       { path: "laboratory", element: <Laboratory /> },
       { path: "autonomous-navigation", element: <Autonomous /> },
-
+      { path: "cameras", element: <Cameras /> },
      
     ],
   },

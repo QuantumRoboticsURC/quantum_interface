@@ -11,6 +11,7 @@ const Sidebar: React.FC = () => {
     { to: "/laboratory", label: "Laboratory", icon: <FlaskConical size={18} /> },
     { to: "/stratigraphic-profile", label: "Stratigraphic Profile", icon: <Map size={18} /> },
     { to: "/autonomous-navigation", label: "Autonomous Nav", icon: <Navigation2 size={18} /> },
+    { to: "/cameras", label: "Cameras", icon: <Gamepad2 size={18} /> },
   ];
 
   return (
