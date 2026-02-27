@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
 type CameraInfo = { id: number; label: string };
 
@@ -15,19 +15,20 @@ const QUALITY_PRESETS = [
   { label: "Max", value: 95 },
 ];
 
-// Each camera panel gets its own WebSocket connection
 function CameraView({
   panel,
   availableCameras,
   onChangeCamera,
   onChangeQuality,
   onRemove,
+  onCamerasDiscovered,
 }: {
   panel: CameraPanel;
   availableCameras: CameraInfo[];
   onChangeCamera: (cameraId: number) => void;
   onChangeQuality: (quality: number) => void;
   onRemove: () => void;
+  onCamerasDiscovered: (cameras: CameraInfo[]) => void;
 }) {
   const [frame, setFrame] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
@@ -36,11 +37,10 @@ function CameraView({
   const fpsCounterRef = useRef(0);
   const fpsTimerRef = useRef<number | null>(null);
 
-  // WebSocket per panel
   useEffect(() => {
     const wsUrl =
       `${window.location.protocol === "https:" ? "wss" : "ws"}://` +
-      `${window.location.hostname}:8000/ws/connection/camera`;
+      `192.168.0.102:8000/ws/connection/camera`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
@@ -57,6 +57,9 @@ function CameraView({
           if (msg.type === "frame" && msg.data) {
             setFrame(`data:image/jpeg;base64,${msg.data}`);
             fpsCounterRef.current++;
+          } else if (msg.type === "cameras" && Array.isArray(msg.data)) {
+            // Report discovered cameras to parent
+            onCamerasDiscovered(msg.data);
           }
         } catch { /* ignore */ }
       } else if (e.data instanceof Blob) {
@@ -76,7 +79,7 @@ function CameraView({
     };
   }, []);
 
-  // Send config updates
+  // Send config when camera or quality changes
   useEffect(() => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -87,7 +90,7 @@ function CameraView({
   const currentCam = availableCameras.find((c) => c.id === panel.cameraId);
 
   return (
-    <div className="bg-gray-800 rounded-2xl shadow-lg border border-gray-700 flex flex-col min-h-0 overflow-hidden">
+    <div className="bg-gray-800 rounded-2xl shadow-lg border border-gray-700 flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -100,7 +103,8 @@ function CameraView({
             {availableCameras.map((cam) => (
               <option key={cam.id} value={cam.id}>{cam.label}</option>
             ))}
-            {availableCameras.length === 0 && (
+            {/* If current camera isn't in the list, still show it */}
+            {!availableCameras.find((c) => c.id === panel.cameraId) && (
               <option value={panel.cameraId}>Camera {panel.cameraId}</option>
             )}
           </select>
@@ -129,7 +133,6 @@ function CameraView({
             <img src={frame} alt="Camera feed" className="max-w-full max-h-full object-contain" />
           ) : (
             <div className="text-gray-500 text-sm flex flex-col items-center gap-2">
-              <span className="text-3xl">📷</span>
               <span>{connected ? "Waiting for frames..." : "Disconnected"}</span>
             </div>
           )}
@@ -148,15 +151,13 @@ const Cameras: React.FC = () => {
   const [panels, setPanels] = useState<CameraPanel[]>([]);
   const [availableCameras, setAvailableCameras] = useState<CameraInfo[]>([]);
   const [nextPanelId, setNextPanelId] = useState(1);
-  const discoveryWsRef = useRef<WebSocket | null>(null);
 
-  // Discovery WebSocket — just to get camera list
+  // Fetch camera list once on mount (no streaming, just discovery)
   useEffect(() => {
     const wsUrl =
       `${window.location.protocol === "https:" ? "wss" : "ws"}://` +
-      `${window.location.hostname}:8000/ws/camera`;
+      `192.168.1.16:8000/ws/connection/camera`;
     const ws = new WebSocket(wsUrl);
-    discoveryWsRef.current = ws;
 
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: "get_cameras" }));
@@ -166,8 +167,10 @@ const Cameras: React.FC = () => {
         try {
           const msg = JSON.parse(e.data);
           if (msg.type === "cameras" && Array.isArray(msg.data)) {
-            console.log("📷 Available cameras:", msg.data);
+            console.log("📷 Discovered cameras:", msg.data);
             setAvailableCameras(msg.data);
+            // Close discovery WS — we don't need it streaming
+            ws.close();
           }
         } catch { /* ignore */ }
       }
@@ -177,16 +180,52 @@ const Cameras: React.FC = () => {
     return () => ws.close();
   }, []);
 
+  // Merge cameras discovered by any panel
+  const handleCamerasDiscovered = useCallback((cameras: CameraInfo[]) => {
+    setAvailableCameras((prev) => {
+      const merged = new Map(prev.map((c) => [c.id, c]));
+      for (const cam of cameras) {
+        merged.set(cam.id, cam);
+      }
+      const result = Array.from(merged.values()).sort((a, b) => a.id - b.id);
+      // Only update if actually changed
+      if (result.length !== prev.length || result.some((c, i) => c.id !== prev[i]?.id)) {
+        return result;
+      }
+      return prev;
+    });
+  }, []);
+
   const refreshCameras = () => {
-    const ws = discoveryWsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "get_cameras" }));
-    }
+    const wsUrl =
+      `${window.location.protocol === "https:" ? "wss" : "ws"}://` +
+      `${window.location.hostname}:8000/ws/camera`;
+    const ws = new WebSocket(wsUrl);
+    ws.onopen = () => { ws.send(JSON.stringify({ type: "get_cameras" })); };
+    ws.onmessage = (e) => {
+      if (typeof e.data === "string") {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === "cameras" && Array.isArray(msg.data)) {
+            console.log("Refreshed cameras:", msg.data);
+            setAvailableCameras(msg.data);
+            ws.close();
+          }
+        } catch { /* ignore */ }
+      }
+    };
   };
 
   const addPanel = () => {
-    // Default to first available camera, or 0
-    const defaultCamId = availableCameras.length > 0 ? availableCameras[0].id : 0;
+    // Try to assign a camera not already in use by another panel
+    const usedIds = new Set(panels.map((p) => p.cameraId));
+    const freeCam = availableCameras.find((c) => !usedIds.has(c.id));
+    const defaultCamId = freeCam
+      ? freeCam.id
+      : availableCameras.length > 0
+        ? availableCameras[0].id
+        : 0;
+
     setPanels((prev) => [...prev, { panelId: nextPanelId, cameraId: defaultCamId, quality: 40 }]);
     setNextPanelId((n) => n + 1);
   };
@@ -201,7 +240,6 @@ const Cameras: React.FC = () => {
     );
   };
 
-  // Grid columns based on number of panels
   const getGridCols = () => {
     const count = panels.length;
     if (count <= 1) return "grid-cols-1";
@@ -211,7 +249,6 @@ const Cameras: React.FC = () => {
     return "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
   };
 
-  // Row height based on count
   const getPanelHeight = () => {
     const count = panels.length;
     if (count <= 2) return "calc(100vh - 120px)";
@@ -236,7 +273,7 @@ const Cameras: React.FC = () => {
         <div className="flex items-center gap-2">
           <button onClick={refreshCameras}
             className="text-xs text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg transition">
-            🔄 Refresh
+            Refresh
           </button>
           <button onClick={addPanel}
             className="text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-500 px-4 py-1.5 rounded-lg transition flex items-center gap-1">
@@ -245,14 +282,14 @@ const Cameras: React.FC = () => {
         </div>
       </div>
 
-      {/* Camera grid */}
+      {/* Grid */}
       {panels.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-4">
-          <span className="text-6xl">📷</span>
+      
           <p className="text-lg">No cameras added</p>
           <p className="text-sm text-gray-600">
             {availableCameras.length > 0
-              ? `${availableCameras.length} camera${availableCameras.length > 1 ? "s" : ""} detected — click "Add Camera" to start viewing`
+              ? `${availableCameras.length} camera${availableCameras.length > 1 ? "s" : ""} detected — click "Add Camera" to start`
               : "No cameras detected — connect a camera and click Refresh"}
           </p>
           <button onClick={addPanel}
@@ -270,6 +307,7 @@ const Cameras: React.FC = () => {
                 onChangeCamera={(cameraId) => updatePanel(panel.panelId, { cameraId })}
                 onChangeQuality={(quality) => updatePanel(panel.panelId, { quality })}
                 onRemove={() => removePanel(panel.panelId)}
+                onCamerasDiscovered={handleCamerasDiscovered}
               />
             </div>
           ))}

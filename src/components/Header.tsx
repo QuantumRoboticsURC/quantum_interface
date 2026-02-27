@@ -11,7 +11,7 @@ export default function Header() {
         
 
         {/* Estado */}
-        <span className="text-green-400 font-medium">🟢 Connected</span>
+        <span className="text-green-400 font-medium">Connected</span>
 
         {/* Botón */}
         <button className="bg-gray-700 px-4 py-1 rounded-lg hover:bg-gray-600 transition">
