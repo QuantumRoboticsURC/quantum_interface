@@ -40,7 +40,7 @@ function CameraView({
   useEffect(() => {
     const wsUrl =
       `${window.location.protocol === "https:" ? "wss" : "ws"}://` +
-      `192.168.0.102:8000/ws/connection/camera`;
+      `192.168.1.3:8001/ws/connection/camera`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
@@ -156,7 +156,7 @@ const Cameras: React.FC = () => {
   useEffect(() => {
     const wsUrl =
       `${window.location.protocol === "https:" ? "wss" : "ws"}://` +
-      `192.168.1.16:8000/ws/connection/camera`;
+      `192.168.1.3:8001/ws/connection/camera`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -199,7 +199,7 @@ const Cameras: React.FC = () => {
   const refreshCameras = () => {
     const wsUrl =
       `${window.location.protocol === "https:" ? "wss" : "ws"}://` +
-      `${window.location.hostname}:8000/ws/camera`;
+      `192.168.1.3:8001/ws/connection/camera`;
     const ws = new WebSocket(wsUrl);
     ws.onopen = () => { ws.send(JSON.stringify({ type: "get_cameras" })); };
     ws.onmessage = (e) => {
