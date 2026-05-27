@@ -5,6 +5,9 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tauri + React + Typescript</title>
+    <!-- OpenCV loaded locally from /public/opencv.js (works offline).
+         Exposes a global `window.cv`. `async` lets the page render while it loads. -->
+    <script async src="/opencv.js"></script>
   </head>
 
   <body>

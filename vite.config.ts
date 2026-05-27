@@ -6,9 +6,9 @@ const host = process.env["TAURI_DEV_HOST"];
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react()],
-  optimizeDeps: {
-    exclude: ["@techstark/opencv-js"],
-  },
+
+  // OpenCV is no longer bundled — it is loaded as a <script> in index.html
+  // (see /public/opencv.js), so it doesn't need to go through Vite at all.
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

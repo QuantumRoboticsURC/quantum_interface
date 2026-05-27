@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import cv2 from "@techstark/opencv-js";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OpenCV is loaded as a global <script> in index.html (see /public/opencv.js),
+// which exposes `window.cv`. We do NOT import it here — bundling the WASM module
+// through Vite caused "root is undefined" crashes. We just wait for the global
+// runtime to finish initializing, store it in cvRef, and pass it into the
+// processing functions as a parameter.
+// ─────────────────────────────────────────────────────────────────────────────
+
+declare global {
+  interface Window {
+    cv?: any;
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types & constants
@@ -65,7 +78,7 @@ type CapturedImage = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Stitch helper (unchanged)
+// Stitch helper (unchanged — no OpenCV dependency)
 // ─────────────────────────────────────────────────────────────────────────────
 function stitchStereoFrame(imgSrc: string, newStripPct = 0.10): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -88,15 +101,15 @@ function stitchStereoFrame(imgSrc: string, newStripPct = 0.10): Promise<string> 
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OpenCV processing (pure functions — no React dependency)
+// OpenCV processing (pure functions — `cv2` is passed in, not imported)
 // ─────────────────────────────────────────────────────────────────────────────
-function matToDataURL(mat: any): string {
+function matToDataURL(cv2: any, mat: any): string {
   const canvas = document.createElement("canvas");
   cv2.imshow(canvas, mat);
   return canvas.toDataURL("image/jpeg", 0.88);
 }
 
-function cvApplyGamma(src: any, gammaVal: number): any {
+function cvApplyGamma(cv2: any, src: any, gammaVal: number): any {
   const g = Math.max(0.01, gammaVal / 100);
   const lut = new cv2.Mat(1, 256, cv2.CV_8UC1);
   for (let i = 0; i < 256; i++)
@@ -107,7 +120,7 @@ function cvApplyGamma(src: any, gammaVal: number): any {
   return dst;
 }
 
-function cvApplySaturation(src: any, sv: number): any {
+function cvApplySaturation(cv2: any, src: any, sv: number): any {
   const hsv = new cv2.Mat();
   cv2.cvtColor(src, hsv, cv2.COLOR_BGR2HSV);
   const planes = new cv2.MatVector();
@@ -129,7 +142,7 @@ function cvApplySaturation(src: any, sv: number): any {
   return bgr;
 }
 
-function cvApplyMorph(edges: any, op: number, k: number): any {
+function cvApplyMorph(cv2: any, edges: any, op: number, k: number): any {
   if (op === 0) return edges.clone();
   const ksize = k * 2 + 1;
   const kernel = cv2.getStructuringElement(cv2.MORPH_RECT, new cv2.Size(ksize, ksize));
@@ -142,7 +155,7 @@ function cvApplyMorph(edges: any, op: number, k: number): any {
   return dst;
 }
 
-async function processAll(imageSrc: string, p: ProcessingParams): Promise<string[]> {
+async function processAll(cv2: any, imageSrc: string, p: ProcessingParams): Promise<string[]> {
   const results: string[] = new Array(6).fill("");
 
   // Load the stitched panorama onto a canvas so cv2.imread gets RGBA
@@ -164,12 +177,12 @@ async function processAll(imageSrc: string, p: ProcessingParams): Promise<string
   rgba.delete();
 
   // Panel 0: Original
-  results[0] = matToDataURL(bgr);
+  results[0] = matToDataURL(cv2, bgr);
 
   // Gamma + Saturation adjustments
-  const gammaAdj = cvApplyGamma(bgr, p.gamma);
+  const gammaAdj = cvApplyGamma(cv2, bgr, p.gamma);
   bgr.delete();
-  const satAdj = cvApplySaturation(gammaAdj, p.saturation);
+  const satAdj = cvApplySaturation(cv2, gammaAdj, p.saturation);
   gammaAdj.delete();
 
   // Bilateral filter (preserve satAdj for panel 1 overlay)
@@ -191,7 +204,7 @@ async function processAll(imageSrc: string, p: ProcessingParams): Promise<string
     const jetMap = new cv2.Mat();
     cv2.applyColorMap(sCh, jetMap, cv2.COLORMAP_JET);
     sCh.delete();
-    results[2] = matToDataURL(jetMap);
+    results[2] = matToDataURL(cv2, jetMap);
     jetMap.delete();
   }
 
@@ -209,7 +222,7 @@ async function processAll(imageSrc: string, p: ProcessingParams): Promise<string
   claheObj.delete(); gray.delete();
 
   // Panel 3: CLAHE grayscale
-  { const c = new cv2.Mat(); cv2.cvtColor(cl1, c, cv2.COLOR_GRAY2BGR); results[3] = matToDataURL(c); c.delete(); }
+  { const c = new cv2.Mat(); cv2.cvtColor(cl1, c, cv2.COLOR_GRAY2BGR); results[3] = matToDataURL(cv2, c); c.delete(); }
 
   // Canny edge detection
   const cl    = Math.max(1, p.canny_low);
@@ -219,14 +232,14 @@ async function processAll(imageSrc: string, p: ProcessingParams): Promise<string
   cl1.delete();
 
   // Panel 4: Canny edges
-  { const c = new cv2.Mat(); cv2.cvtColor(canny, c, cv2.COLOR_GRAY2BGR); results[4] = matToDataURL(c); c.delete(); }
+  { const c = new cv2.Mat(); cv2.cvtColor(canny, c, cv2.COLOR_GRAY2BGR); results[4] = matToDataURL(cv2, c); c.delete(); }
 
   // Morphological operation
-  const morph = cvApplyMorph(canny, p.morph_op, p.morph_k);
+  const morph = cvApplyMorph(cv2, canny, p.morph_op, p.morph_k);
   canny.delete();
 
   // Panel 5: Morph edges
-  { const c = new cv2.Mat(); cv2.cvtColor(morph, c, cv2.COLOR_GRAY2BGR); results[5] = matToDataURL(c); c.delete(); }
+  { const c = new cv2.Mat(); cv2.cvtColor(morph, c, cv2.COLOR_GRAY2BGR); results[5] = matToDataURL(cv2, c); c.delete(); }
 
   // Panel 1: Original with colored edges overlaid
   {
@@ -235,7 +248,7 @@ async function processAll(imageSrc: string, p: ProcessingParams): Promise<string
     const fill           = new cv2.Mat(overlay.rows, overlay.cols, cv2.CV_8UC3, new cv2.Scalar(B, G, R));
     fill.copyTo(overlay, morph);
     fill.delete();
-    results[1] = matToDataURL(overlay);
+    results[1] = matToDataURL(cv2, overlay);
     overlay.delete();
   }
 
@@ -318,6 +331,7 @@ const Strat: React.FC = () => {
 
   // ── Analysis state ──────────────────────────────────────────────────────────
   const [cvReady,       setCvReady]       = useState(false);
+  const [cvError,       setCvError]       = useState<string | null>(null);
   const [params,        setParams]        = useState<ProcessingParams>(DEFAULT_PARAMS);
   const [panels,        setPanels]        = useState<string[]>([]);
   const [processing,    setProcessing]    = useState(false);
@@ -325,6 +339,7 @@ const Strat: React.FC = () => {
   const [activePreset,  setActivePreset]  = useState<string | null>(null);
 
   // ── Refs ────────────────────────────────────────────────────────────────────
+  const cvRef               = useRef<any>(null);   // holds window.cv once ready
   const wsRef               = useRef<WebSocket | null>(null);
   const imuWsRef            = useRef<WebSocket | null>(null);
   const selectedCameraIdRef = useRef<number | null>(null);
@@ -337,20 +352,66 @@ const Strat: React.FC = () => {
   useEffect(() => { newStripPctRef.current  = newStripPct;  }, [newStripPct]);
   useEffect(() => { latestParamsRef.current = params;       }, [params]);
 
-  // ── OpenCV initialization ───────────────────────────────────────────────────
+  // ── OpenCV readiness (from global window.cv loaded in index.html) ────────────
+  // The <script> in index.html loads OpenCV asynchronously and sets window.cv.
+  // The WASM runtime then needs a moment to initialize (cv.Mat becomes defined,
+  // or cv.onRuntimeInitialized fires). We poll briefly until it's ready.
   useEffect(() => {
-    if ((cv2 as any).Mat) setCvReady(true);
-    else cv2.onRuntimeInitialized = () => setCvReady(true);
+    let cancelled = false;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const markReady = () => {
+      if (cancelled) return;
+      cvRef.current = window.cv;
+      setCvReady(true);
+      if (pollTimer) clearInterval(pollTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+    };
+
+    const check = () => {
+      const cv = window.cv;
+      // Ready when the runtime is initialized and Mat is available.
+      if (cv && typeof cv.Mat !== "undefined") {
+        markReady();
+        return true;
+      }
+      // If the script object exists but isn't initialized yet, hook the callback.
+      if (cv && typeof cv.then !== "function" && !cv.Mat) {
+        cv.onRuntimeInitialized = markReady;
+      }
+      return false;
+    };
+
+    if (!check()) {
+      // Poll every 200ms in case onRuntimeInitialized isn't reliable in this build.
+      pollTimer = setInterval(check, 200);
+      // Give up after 20s and show a clear message.
+      timeoutTimer = setTimeout(() => {
+        if (!cancelled && !cvRef.current) {
+          setCvError("No se pudo cargar OpenCV (revisa que /public/opencv.js exista).");
+          if (pollTimer) clearInterval(pollTimer);
+        }
+      }, 20000);
+    }
+
+    return () => {
+      cancelled = true;
+      if (pollTimer) clearInterval(pollTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+    };
   }, []);
 
   // ── Re-process when capture or params change ────────────────────────────────
   useEffect(() => {
     if (!cvReady || !captured) { setPanels([]); return; }
+    const cv2 = cvRef.current;
+    if (!cv2) return;
     if (processTimerRef.current) clearTimeout(processTimerRef.current);
     setProcessing(true);
     processTimerRef.current = setTimeout(async () => {
       try {
-        const result = await processAll(captured.src, latestParamsRef.current);
+        const result = await processAll(cv2, captured.src, latestParamsRef.current);
         setPanels(result);
       } catch (e) {
         console.error("OpenCV processing error:", e);
@@ -510,7 +571,11 @@ const Strat: React.FC = () => {
           <span className={`w-2 h-2 rounded-full ${connected ? "bg-green-400" : "bg-red-400"}`} />
           {connected ? cameraLabel : "Disconnected"}
         </span>
-        {!cvReady && (
+        {cvError ? (
+          <span className="text-xs text-red-300 bg-red-900/40 border border-red-700 px-2 py-0.5 rounded-full">
+            {cvError}
+          </span>
+        ) : !cvReady && (
           <span className="text-xs text-yellow-300 bg-yellow-900/40 border border-yellow-700 px-2 py-0.5 rounded-full animate-pulse">
             Loading analysis tools…
           </span>

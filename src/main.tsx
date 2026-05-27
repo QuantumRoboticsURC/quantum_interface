@@ -9,6 +9,7 @@ import Strat from "./routes/stratigraphic";
 import Laboratory from "./routes/laboratory";
 import Autonomous from "./routes/autonomous";
 import Cameras from "./routes/cameras";
+import Rocas from "./routes/rocas";
 
 import "./main.css";
 
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
       { path: "laboratory", element: <Laboratory /> },
       { path: "autonomous-navigation", element: <Autonomous /> },
       { path: "cameras", element: <Cameras /> },
+      { path: "rocas", element: <Rocas /> },
      
     ],
   },
