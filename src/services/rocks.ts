@@ -4,6 +4,7 @@
 export type Rock = {
   id: string;
   nombre: string;
+  nombreEn: string;
   tipo: "Ígnea" | "Sedimentaria" | "Metamórfica";
   subclasificacion: string;
   granulosidad: string;
@@ -19,6 +20,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "diorita",
     "nombre": "Diorita",
+    "nombreEn": "Diorite",
     "tipo": "Ígnea",
     "subclasificacion": "Plutónica",
     "granulosidad": "Fanerítica",
@@ -48,6 +50,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "foidolita",
     "nombre": "Foidolita",
+    "nombreEn": "Foidolite",
     "tipo": "Ígnea",
     "subclasificacion": "Plutónica",
     "granulosidad": "Fanerítica",
@@ -78,6 +81,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "gabbro",
     "nombre": "Gabbro",
+    "nombreEn": "Gabbro",
     "tipo": "Ígnea",
     "subclasificacion": "Plutónica",
     "granulosidad": "Fanerítica",
@@ -105,6 +109,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "granito",
     "nombre": "Granito",
+    "nombreEn": "Granite",
     "tipo": "Ígnea",
     "subclasificacion": "Plutónica",
     "granulosidad": "Fanerítica",
@@ -138,6 +143,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "granodiorita",
     "nombre": "Granodiorita",
+    "nombreEn": "Granodiorite",
     "tipo": "Ígnea",
     "subclasificacion": "Plutónica",
     "granulosidad": "Fanerítica",
@@ -171,6 +177,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "monzonita",
     "nombre": "Monzonita",
+    "nombreEn": "Monzonite",
     "tipo": "Ígnea",
     "subclasificacion": "Plutónica",
     "granulosidad": "Fanerítica",
@@ -201,6 +208,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "peridotita",
     "nombre": "Peridotita",
+    "nombreEn": "Peridotite",
     "tipo": "Ígnea",
     "subclasificacion": "Plutónica",
     "granulosidad": "Fanerítica",
@@ -227,6 +235,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "sienita",
     "nombre": "Sienita",
+    "nombreEn": "Syenite",
     "tipo": "Ígnea",
     "subclasificacion": "Plutónica",
     "granulosidad": "Fanerítica",
@@ -257,6 +266,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "andesita",
     "nombre": "Andesita",
+    "nombreEn": "Andesite",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Afanítica",
@@ -286,6 +296,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "basalto",
     "nombre": "Basalto",
+    "nombreEn": "Basalt",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Afanítica",
@@ -313,6 +324,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "dacita",
     "nombre": "Dacita",
+    "nombreEn": "Dacite",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Afanítica",
@@ -346,6 +358,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "diabasa-dolerita-microgabro",
     "nombre": "Diabasa/Dolerita/Microgabro",
+    "nombreEn": "Diabase/Dolerite/Microgabbro",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Fanerítica",
@@ -373,6 +386,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "foidita",
     "nombre": "Foidita",
+    "nombreEn": "Foidite",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Afanítica",
@@ -403,6 +417,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "komatita",
     "nombre": "Komatita",
+    "nombreEn": "Komatiite",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Afanítica",
@@ -427,6 +442,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "latita",
     "nombre": "Latita",
+    "nombreEn": "Latite",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Afanítica",
@@ -457,6 +473,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "obsidiana",
     "nombre": "Obsidiana",
+    "nombreEn": "Obsidian",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Vítrea",
@@ -487,6 +504,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "picrita",
     "nombre": "Picrita",
+    "nombreEn": "Picrite",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Afanítica",
@@ -514,6 +532,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "riolita",
     "nombre": "Riolita",
+    "nombreEn": "Rhyolite",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Afanítica",
@@ -546,6 +565,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "traquita",
     "nombre": "Traquita",
+    "nombreEn": "Trachyte",
     "tipo": "Ígnea",
     "subclasificacion": "Volcánica",
     "granulosidad": "Afanítica",
@@ -576,6 +596,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "greisen",
     "nombre": "Greisen",
+    "nombreEn": "Greisen",
     "tipo": "Metamórfica",
     "subclasificacion": "Contacto",
     "granulosidad": "No Foliada",
@@ -608,6 +629,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "marmol",
     "nombre": "Mármol",
+    "nombreEn": "Marble",
     "tipo": "Metamórfica",
     "subclasificacion": "Contacto",
     "granulosidad": "No Foliada",
@@ -636,6 +658,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "migmatita",
     "nombre": "Migmatita",
+    "nombreEn": "Migmatite",
     "tipo": "Metamórfica",
     "subclasificacion": "Contacto",
     "granulosidad": "Foliada",
@@ -669,6 +692,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "tripoli",
     "nombre": "Trípoli",
+    "nombreEn": "Tripoli",
     "tipo": "Metamórfica",
     "subclasificacion": "Contacto",
     "granulosidad": "No Foliada",
@@ -698,6 +722,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "esquisto",
     "nombre": "Esquisto",
+    "nombreEn": "Schist",
     "tipo": "Metamórfica",
     "subclasificacion": "Regional",
     "granulosidad": "Foliada",
@@ -729,6 +754,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "filita",
     "nombre": "Filita",
+    "nombreEn": "Phyllite",
     "tipo": "Metamórfica",
     "subclasificacion": "Regional",
     "granulosidad": "Foliada",
@@ -758,6 +784,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "gneis",
     "nombre": "Gneis",
+    "nombreEn": "Gneiss",
     "tipo": "Metamórfica",
     "subclasificacion": "Regional",
     "granulosidad": "Foliada",
@@ -791,6 +818,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "pizarra",
     "nombre": "Pizarra",
+    "nombreEn": "Slate",
     "tipo": "Metamórfica",
     "subclasificacion": "Regional",
     "granulosidad": "Foliada",
@@ -821,6 +849,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "chert-de-magadi",
     "nombre": "Chert de Magadi",
+    "nombreEn": "Magadi Chert",
     "tipo": "Sedimentaria",
     "subclasificacion": "Biológica",
     "granulosidad": "Lutita",
@@ -854,6 +883,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "coquina",
     "nombre": "Coquina",
+    "nombreEn": "Coquina",
     "tipo": "Sedimentaria",
     "subclasificacion": "Biológica",
     "granulosidad": "Conglomerado",
@@ -877,6 +907,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "creta",
     "nombre": "Creta",
+    "nombreEn": "Chalk",
     "tipo": "Sedimentaria",
     "subclasificacion": "Biológica",
     "granulosidad": "Lutita",
@@ -903,6 +934,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "geyserita",
     "nombre": "Geyserita",
+    "nombreEn": "Geyserite",
     "tipo": "Sedimentaria",
     "subclasificacion": "Biológica",
     "granulosidad": "Lutita",
@@ -935,6 +967,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "mozarkita",
     "nombre": "Mozarkita",
+    "nombreEn": "Mozarkite",
     "tipo": "Sedimentaria",
     "subclasificacion": "Biológica",
     "granulosidad": "Lutita",
@@ -968,6 +1001,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "novaculita",
     "nombre": "Novaculita",
+    "nombreEn": "Novaculite",
     "tipo": "Sedimentaria",
     "subclasificacion": "Biológica",
     "granulosidad": "Lutita",
@@ -994,6 +1028,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "radiolarita",
     "nombre": "Radiolarita",
+    "nombreEn": "Radiolarite",
     "tipo": "Sedimentaria",
     "subclasificacion": "Biológica",
     "granulosidad": "Lutita",
@@ -1026,6 +1061,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "silex",
     "nombre": "Sílex",
+    "nombreEn": "Flint",
     "tipo": "Sedimentaria",
     "subclasificacion": "Biológica",
     "granulosidad": "Lutita",
@@ -1058,6 +1094,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "arcosa",
     "nombre": "Arcosa",
+    "nombreEn": "Arkose",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Arenisca",
@@ -1080,6 +1117,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "arenita-cuarcitica",
     "nombre": "Arenita cuarcítica",
+    "nombreEn": "Quartzarenite",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Arenisca",
@@ -1102,6 +1140,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "caliza",
     "nombre": "Caliza",
+    "nombreEn": "Limestone",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Arenisca",
@@ -1130,6 +1169,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "caliza-esparitica",
     "nombre": "Caliza Esparítica",
+    "nombreEn": "Sparite Limestone",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Lutita",
@@ -1158,6 +1198,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "dolomia",
     "nombre": "Dolomía",
+    "nombreEn": "Dolostone",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Arenisca",
@@ -1184,6 +1225,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "grauvaca-cuarcitica",
     "nombre": "Grauvaca cuarcítica",
+    "nombreEn": "Quartzose Greywacke",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Arenisca",
@@ -1206,6 +1248,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "grauvaca-feldespatica",
     "nombre": "Grauvaca feldespática",
+    "nombreEn": "Feldspathic Greywacke",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Arenisca",
@@ -1226,6 +1269,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "laterita",
     "nombre": "Laterita",
+    "nombreEn": "Laterite",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Arenisca-Lutita",
@@ -1257,6 +1301,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "marga",
     "nombre": "Marga",
+    "nombreEn": "Marl",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Lutita",
@@ -1284,6 +1329,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "micrita",
     "nombre": "Micrita",
+    "nombreEn": "Micrite",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Lutita",
@@ -1312,6 +1358,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "shale-cafe",
     "nombre": "Shale Café",
+    "nombreEn": "Brown Shale",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Lutita",
@@ -1339,6 +1386,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "shale-gris",
     "nombre": "Shale Gris",
+    "nombreEn": "Gray Shale",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Lutita",
@@ -1364,6 +1412,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "shale-negro",
     "nombre": "Shale Negro",
+    "nombreEn": "Black Shale",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Lutita",
@@ -1390,6 +1439,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "shale-rojo",
     "nombre": "Shale Rojo",
+    "nombreEn": "Red Shale",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Lutita",
@@ -1415,6 +1465,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "shale-verde",
     "nombre": "Shale Verde",
+    "nombreEn": "Green Shale",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Lutita",
@@ -1443,6 +1494,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "wakestone",
     "nombre": "Wakestone",
+    "nombreEn": "Wackestone",
     "tipo": "Sedimentaria",
     "subclasificacion": "Clástica",
     "granulosidad": "Lutita",
@@ -1472,6 +1524,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "agata",
     "nombre": "Ágata",
+    "nombreEn": "Agate",
     "tipo": "Sedimentaria",
     "subclasificacion": "Química",
     "granulosidad": "Lutita",
@@ -1503,6 +1556,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "jaspe",
     "nombre": "Jaspe",
+    "nombreEn": "Jasper",
     "tipo": "Sedimentaria",
     "subclasificacion": "Química",
     "granulosidad": "Lutita",
@@ -1532,6 +1586,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "jaspillita",
     "nombre": "Jaspillita",
+    "nombreEn": "Jaspillite",
     "tipo": "Sedimentaria",
     "subclasificacion": "Química",
     "granulosidad": "Lutita",
@@ -1561,6 +1616,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "travertino",
     "nombre": "Travertino",
+    "nombreEn": "Travertine",
     "tipo": "Sedimentaria",
     "subclasificacion": "Química",
     "granulosidad": "Lutita",
@@ -1587,6 +1643,7 @@ export const ROCKS: Rock[] = [
   {
     "id": "tufa",
     "nombre": "Tufa",
+    "nombreEn": "Tufa",
     "tipo": "Sedimentaria",
     "subclasificacion": "Química",
     "granulosidad": "Lutita",

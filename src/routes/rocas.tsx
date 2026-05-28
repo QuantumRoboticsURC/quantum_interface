@@ -65,6 +65,9 @@ function RockCard({ rock, onOpen }: { rock: Rock; onOpen: (r: Rock) => void }) {
         <h3 className="font-bold text-white text-sm leading-tight">
           {rock.nombre}
         </h3>
+        <p className="text-[11px] text-gray-500 italic leading-tight">
+          {rock.nombreEn}
+        </p>
         <p className="text-[11px] text-gray-400">
           {rock.subclasificacion} · {rock.granulosidad}
         </p>
@@ -122,7 +125,10 @@ function RockModal({ rock, onClose }: { rock: Rock; onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-white">{rock.nombre}</h2>
+            <div>
+              <h2 className="text-xl font-bold text-white leading-tight">{rock.nombre}</h2>
+              <p className="text-xs text-gray-400 italic">{rock.nombreEn}</p>
+            </div>
             <TipoBadge tipo={rock.tipo} />
           </div>
           <button
@@ -218,6 +224,7 @@ const Rocas: React.FC = () => {
       if (!q) return true;
       const haystack = [
         r.nombre,
+        r.nombreEn,
         r.tipo,
         r.subclasificacion,
         r.granulosidad,
