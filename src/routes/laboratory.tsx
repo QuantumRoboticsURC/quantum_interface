@@ -110,6 +110,19 @@ function overlayMask(pixels: Uint8ClampedArray, mask: Uint8Array): Uint8ClampedA
   return output;
 }
 
+function uint8ToBase64(arr: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < arr.byteLength; i++) binary += String.fromCharCode(arr[i]);
+  return btoa(binary);
+}
+
+function base64ToUint8(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const arr = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+  return arr;
+}
+
 function decodeToCanvas(src: string): Promise<HTMLCanvasElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -126,6 +139,7 @@ function decodeToCanvas(src: string): Promise<HTMLCanvasElement> {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const MAX_POINTS = 60;
+const CALIBRATION_KEY = "quantum_microscope_calibration";
 
 const QUALITY_PRESETS = [
   { label: "Low", value: 15 },
@@ -242,6 +256,7 @@ export default function Laboratory() {
   const [dilatePx, setDilatePx]         = useState(3);
   const [inpaintRadius, setInpaintR]    = useState(5);
   const [calibrated, setCalibrated]     = useState(false);
+  const [calibratedAt, setCalibratedAt] = useState<string | null>(null);
   const [dirtPct, setDirtPct]           = useState(0);
   const [displayFrame, setDisplayFrame] = useState<string | null>(null);
 
@@ -373,6 +388,22 @@ export default function Laboratory() {
     return () => { cancelled = true; };
   }, [cameraFrame, viewMode, inpaintRadius]);
 
+  // ── Load saved calibration on mount ──────────────────────────────────
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CALIBRATION_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (saved.version !== 1 || !saved.mask) return;
+      maskRef.current = { data: base64ToUint8(saved.mask), w: saved.w, h: saved.h };
+      setThreshold(saved.threshold);
+      setDilatePx(saved.dilatePx);
+      setDirtPct(saved.dirtPct);
+      setCalibrated(true);
+      setCalibratedAt(saved.timestamp);
+    } catch { /* ignore corrupt data */ }
+  }, []);
+
   // ── Calibrate: build mask from current frame ──────────────────────────
   const calibrate = useCallback(async () => {
     if (!cameraFrame) return;
@@ -382,9 +413,20 @@ export default function Laboratory() {
       const id  = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const mask = buildMask(id.data, canvas.width, canvas.height, threshold, dilatePx);
       const dirty = mask.reduce((s, v) => s + (v > 0 ? 1 : 0), 0);
+      const pct = (dirty / (canvas.width * canvas.height)) * 100;
+      const ts  = new Date().toISOString();
       maskRef.current = { data: mask, w: canvas.width, h: canvas.height };
       setCalibrated(true);
-      setDirtPct((dirty / (canvas.width * canvas.height)) * 100);
+      setDirtPct(pct);
+      setCalibratedAt(ts);
+      try {
+        localStorage.setItem(CALIBRATION_KEY, JSON.stringify({
+          version: 1, timestamp: ts,
+          threshold, dilatePx, dirtPct: pct,
+          w: canvas.width, h: canvas.height,
+          mask: uint8ToBase64(mask),
+        }));
+      } catch { /* storage full or unavailable */ }
     } catch { /* ignore */ }
   }, [cameraFrame, threshold, dilatePx]);
 
@@ -471,8 +513,13 @@ export default function Laboratory() {
               <div className={`w-2 h-2 rounded-full ${cameraConnected ? "bg-green-400" : "bg-red-400"}`} />
               <span className="text-[11px] text-gray-400">{fps} FPS</span>
               {calibrated && (
-                <span className="text-[10px] font-mono text-green-400">
+                <span className="text-[10px] font-mono text-green-400 flex items-center gap-1">
                   ✓ {dirtPct.toFixed(1)}% dirt
+                  {calibratedAt && (
+                    <span className="text-gray-500">
+                      · {new Date(calibratedAt).toLocaleString()}
+                    </span>
+                  )}
                 </span>
               )}
             </div>
