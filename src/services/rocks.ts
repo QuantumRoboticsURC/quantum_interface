@@ -1,5 +1,5 @@
 // Auto-generated from "Base de Rocas" CSV + "Base Rocas Imágenes" PDF.
-// Images live in /public/rocks/. 49 of 56 rocks have a photo; the rest are null.
+// Images live in /public/rocks/. All 56 rocks now have a photo.
 
 export type Rock = {
   id: string;
@@ -436,8 +436,8 @@ export const ROCKS: Rock[] = [
       "Gris",
       "Café"
     ],
-    "imagenes": [],
-    "imagen": null
+    "imagenes": ["komatita.jpg"],
+    "imagen": "komatita.jpg"
   },
   {
     "id": "latita",
@@ -716,8 +716,8 @@ export const ROCKS: Rock[] = [
       "Gris",
       "Rojo"
     ],
-    "imagenes": [],
-    "imagen": null
+    "imagenes": ["tripoli.jpg"],
+    "imagen": "tripoli.jpg"
   },
   {
     "id": "esquisto",
@@ -1263,8 +1263,8 @@ export const ROCKS: Rock[] = [
       "Café rojizo",
       "Rojo"
     ],
-    "imagenes": [],
-    "imagen": null
+    "imagenes": ["grauvaca_feldespatica.jpg"],
+    "imagen": "grauvaca_feldespatica.jpg"
   },
   {
     "id": "laterita",
@@ -1380,8 +1380,8 @@ export const ROCKS: Rock[] = [
       "Amarillo",
       "Cafe"
     ],
-    "imagenes": [],
-    "imagen": null
+    "imagenes": ["shale-cafe.jpg"],
+    "imagen": "shale-cafe.jpg"
   },
   {
     "id": "shale-gris",
@@ -1459,8 +1459,8 @@ export const ROCKS: Rock[] = [
       "Blanco",
       "Rojo"
     ],
-    "imagenes": [],
-    "imagen": null
+    "imagenes": ["shale_rojo.jpg"],
+    "imagen": "shale_rojo.jpg"
   },
   {
     "id": "shale-verde",
@@ -1488,8 +1488,8 @@ export const ROCKS: Rock[] = [
       "Blanco",
       "Verde"
     ],
-    "imagenes": [],
-    "imagen": null
+    "imagenes": ["shale_verde.jpg"],
+    "imagen": "shale_verde.jpg"
   },
   {
     "id": "wakestone",
@@ -1518,8 +1518,8 @@ export const ROCKS: Rock[] = [
       "Gris",
       "Negro"
     ],
-    "imagenes": [],
-    "imagen": null
+    "imagenes": ["wakestone.jpg"],
+    "imagen": "wakestone.jpg"
   },
   {
     "id": "agata",
