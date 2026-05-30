@@ -99,6 +99,16 @@ async function stitchByHeading(frames: Frame[]): Promise<Pano> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GPS distance (flat-earth Pythagorean, accurate for < 10 km)
+// ─────────────────────────────────────────────────────────────────────────────
+function gpsDistance(a: GPS, b: GPS): number {
+  const R  = 111320;
+  const dy = (b.lat - a.lat) * R;
+  const dx = (b.lon - a.lon) * Math.cos(((a.lat + b.lat) / 2) * (Math.PI / 180)) * R;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Scale bar
 // Computes the physical width of the image from distance + FOV and draws a
 // labelled bar whose pixel width updates when the image element is resized.
@@ -165,7 +175,8 @@ const PanoramaView: React.FC = () => {
   const [imgEl, setImgEl] = useState<HTMLImageElement | null>(null);
   const imgCallbackRef    = useCallback((el: HTMLImageElement | null) => setImgEl(el), []);
 
-  const [liveGps, setLiveGps] = useState<GPS | null>(null);
+  const [liveGps,   setLiveGps]   = useState<GPS | null>(null);
+  const [targetGps, setTargetGps] = useState<GPS | null>(null);
 
   const wsRef    = useRef<WebSocket | null>(null);
   const imuWsRef = useRef<WebSocket | null>(null);
@@ -308,8 +319,12 @@ const PanoramaView: React.FC = () => {
     finally { setStitching(false); }
   };
 
-  const clearSweep  = () => { setSweepFrames([]); setSweepPano(null); };
-  const resetSingle = () => setSinglePano(null);
+  const clearSweep  = () => { setSweepFrames([]); setSweepPano(null); setTargetGps(null); };
+  const resetSingle = () => { setSinglePano(null); setTargetGps(null); };
+  const markTarget  = () => {
+    if (!liveGps) { setError("No GPS signal"); return; }
+    setTargetGps(liveGps);
+  };
 
   const download = () => {
     if (!activePano) return;
@@ -320,8 +335,13 @@ const PanoramaView: React.FC = () => {
   };
 
   // ── Derived ───────────────────────────────────────────────────────────────
+  // GPS distance takes priority over manual slider when both points are known
+  const gpsDistM = activePano?.gps && targetGps
+    ? gpsDistance(activePano.gps, targetGps)
+    : null;
+  const effectiveDistM = gpsDistM ?? distanceM;
   const imageWidthM = activePano
-    ? Math.round(2 * distanceM * Math.tan((activePano.fovDeg * Math.PI) / 360))
+    ? Math.round(2 * effectiveDistM * Math.tan((activePano.fovDeg * Math.PI) / 360))
     : null;
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -377,7 +397,7 @@ const PanoramaView: React.FC = () => {
               <img ref={imgCallbackRef} src={activePano.dataUrl} alt="Panorama"
                 className="max-w-full max-h-full object-contain" />
               <CompassRose yaw={activePano.yaw} frozen />
-              <ScaleBar distanceM={distanceM} fovDeg={activePano.fovDeg} imgEl={imgEl} />
+              <ScaleBar distanceM={effectiveDistM} fovDeg={activePano.fovDeg} imgEl={imgEl} />
               {/* GPS overlay — frozen at capture time */}
               <div className="absolute top-2 left-2 pointer-events-none select-none">
                 <div className="bg-black/65 backdrop-blur-sm rounded-lg px-2.5 py-2 font-mono">
@@ -446,20 +466,68 @@ const PanoramaView: React.FC = () => {
               </p>
             </div>
 
-            {/* Scale distance */}
+            {/* Scale */}
             <div>
               <p className="text-xs text-gray-500 font-bold tracking-widest mb-2">SCALE</p>
-              <div className="bg-gray-800 rounded-lg px-3 py-2">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-gray-400">Est. Distance</span>
-                  <span className="text-xs text-amber-400 font-bold">{distanceM} m</span>
+              <div className="bg-gray-800 rounded-lg px-3 py-2 space-y-2">
+
+                {/* Point A — frozen at capture */}
+                <div>
+                  <p className="text-[10px] text-gray-500 font-bold tracking-widest mb-0.5">PUNTO A · ROVER AL CAPTURAR</p>
+                  {activePano?.gps
+                    ? <p className="text-xs text-gray-300 font-mono">{activePano.gps.lat.toFixed(6)}°  {activePano.gps.lon.toFixed(6)}°</p>
+                    : <p className="text-xs text-gray-600">Sin panorama aún</p>
+                  }
                 </div>
-                <input type="range" min={1} max={500} step={1} value={distanceM}
-                  onChange={e => setDistanceM(Number(e.target.value))}
-                  className="w-full accent-amber-500 h-1 cursor-pointer" />
-                {imageWidthM !== null && (
-                  <p className="text-xs text-gray-600 mt-1">Frame width ≈ {imageWidthM} m</p>
-                )}
+
+                {/* Point B — rover at target */}
+                <div>
+                  <p className="text-[10px] text-gray-500 font-bold tracking-widest mb-1">PUNTO B · ROVER EN EL OBJETO</p>
+                  {targetGps ? (
+                    <>
+                      <p className="text-xs text-green-300 font-mono">{targetGps.lat.toFixed(6)}°  {targetGps.lon.toFixed(6)}°</p>
+                      <button onClick={() => setTargetGps(null)}
+                        className="text-[10px] text-gray-600 hover:text-red-400 transition mt-0.5">
+                        ✕ Borrar punto B
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={markTarget} disabled={!liveGps || !activePano}
+                      className={`w-full text-xs font-semibold py-2 rounded-lg transition ${
+                        liveGps && activePano
+                          ? "bg-cyan-700 hover:bg-cyan-600 text-white"
+                          : "bg-gray-700 text-gray-500 cursor-not-allowed"
+                      }`}>
+                      📍 Marcar Punto B
+                    </button>
+                  )}
+                </div>
+
+                {/* Computed distance or manual slider */}
+                <div className="border-t border-gray-700 pt-2 space-y-2">
+                  {gpsDistM !== null && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-400">Distancia GPS</span>
+                      <span className="text-xs text-green-400 font-bold font-mono">{gpsDistM.toFixed(1)} m</span>
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className={`text-xs ${gpsDistM !== null ? "text-gray-600" : "text-gray-400"}`}>
+                        {gpsDistM !== null ? "Distancia manual (ignorada)" : "Distancia manual"}
+                      </span>
+                      <span className={`text-xs font-bold ${gpsDistM !== null ? "text-gray-600" : "text-amber-400"}`}>
+                        {distanceM} m
+                      </span>
+                    </div>
+                    <input type="range" min={1} max={500} step={1} value={distanceM}
+                      onChange={e => setDistanceM(Number(e.target.value))}
+                      className={`w-full h-1 cursor-pointer ${gpsDistM !== null ? "accent-gray-600 opacity-40" : "accent-amber-500"}`} />
+                  </div>
+                  {imageWidthM !== null && (
+                    <p className="text-xs text-gray-600">Ancho encuadre ≈ {imageWidthM} m</p>
+                  )}
+                </div>
               </div>
             </div>
 
