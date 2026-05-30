@@ -33,9 +33,39 @@ function CameraView({
   const [frame, setFrame] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [fps, setFps] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const fpsCounterRef = useRef(0);
   const fpsTimerRef = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const ZOOM_STEP = 0.5;
+  const MAX_ZOOM  = 4;
+
+  const clampPan = (x: number, y: number, z: number) => {
+    const el = containerRef.current;
+    if (!el) return { x, y };
+    const { width, height } = el.getBoundingClientRect();
+    const maxX = (width  * (z - 1)) / 2;
+    const maxY = (height * (z - 1)) / 2;
+    return { x: Math.max(-maxX, Math.min(maxX, x)), y: Math.max(-maxY, Math.min(maxY, y)) };
+  };
+
+  const zoomIn = () => setZoom(z => Math.min(+(z + ZOOM_STEP).toFixed(1), MAX_ZOOM));
+  const zoomOut = () => setZoom(z => {
+    const next = Math.max(+(z - ZOOM_STEP).toFixed(1), 1);
+    if (next === 1) { setPanX(0); setPanY(0); }
+    return next;
+  });
+  const resetZoom = () => { setZoom(1); setPanX(0); setPanY(0); };
+
+  const PAN_STEP = 60;
+  const pan = (dx: number, dy: number) => {
+    setPanX(x => { const c = clampPan(x + dx, panY, zoom); return c.x; });
+    setPanY(y => { const c = clampPan(panX, y + dy, zoom); return c.y; });
+  };
 
   useEffect(() => {
     const wsUrl =
@@ -79,12 +109,13 @@ function CameraView({
     };
   }, []);
 
-  // Send config when camera or quality changes
+  // Send config when camera or quality changes; reset zoom on camera switch
   useEffect(() => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: "config", camera_id: panel.cameraId, quality: panel.quality }));
     }
+    resetZoom();
   }, [panel.cameraId, panel.quality]);
 
   const currentCam = availableCameras.find((c) => c.id === panel.cameraId);
@@ -118,8 +149,24 @@ function CameraView({
               {q.label}
             </button>
           ))}
+          {/* Zoom controls */}
+          <div className="flex items-center gap-0.5 ml-1 border-l border-gray-600 pl-1">
+            <button onClick={zoomOut} disabled={zoom <= 1}
+              className="w-5 h-5 rounded text-[11px] font-bold bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center justify-center">
+              −
+            </button>
+            <button onClick={resetZoom}
+              className={`px-1 py-0.5 rounded text-[10px] font-bold transition min-w-[34px] text-center
+                ${zoom > 1 ? "bg-cyan-700 text-cyan-200 hover:bg-cyan-600" : "bg-gray-700 text-gray-500 cursor-default"}`}>
+              ×{zoom.toFixed(1)}
+            </button>
+            <button onClick={zoomIn} disabled={zoom >= MAX_ZOOM}
+              className="w-5 h-5 rounded text-[11px] font-bold bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center justify-center">
+              +
+            </button>
+          </div>
           <button onClick={onRemove}
-            className="ml-2 bg-red-600/80 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition"
+            className="ml-1 bg-red-600/80 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition"
             title="Remove camera">
             ✕
           </button>
@@ -128,17 +175,58 @@ function CameraView({
 
       {/* Feed */}
       <div className="flex-1 px-2 pb-2 min-h-0 overflow-hidden">
-        <div className="relative w-full h-full bg-black rounded-xl overflow-hidden flex items-center justify-center">
+        <div ref={containerRef}
+          className="relative w-full h-full bg-black rounded-xl overflow-hidden flex items-center justify-center">
           {frame ? (
-            <img src={frame} alt="Camera feed" className="max-w-full max-h-full object-contain" />
+            <img
+              src={frame}
+              alt="Camera feed"
+              className="max-w-full max-h-full object-contain"
+              style={{
+                transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+                transformOrigin: "center",
+                transition: "transform 0.12s ease",
+              }}
+            />
           ) : (
             <div className="text-gray-500 text-sm flex flex-col items-center gap-2">
               <span>{connected ? "Waiting for frames..." : "Disconnected"}</span>
             </div>
           )}
+
           {currentCam && (
             <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm rounded-md px-2 py-1 text-xs text-white font-semibold">
               {currentCam.label}
+            </div>
+          )}
+
+          {/* D-pad — only visible when zoomed in */}
+          {zoom > 1 && (
+            <div className="absolute bottom-2 right-2 grid grid-cols-3 gap-0.5 select-none">
+              <div />
+              <button onClick={() => pan(0, -PAN_STEP)}
+                className="w-7 h-7 bg-black/70 hover:bg-black/90 text-white rounded text-sm flex items-center justify-center transition">
+                ▲
+              </button>
+              <div />
+              <button onClick={() => pan(-PAN_STEP, 0)}
+                className="w-7 h-7 bg-black/70 hover:bg-black/90 text-white rounded text-sm flex items-center justify-center transition">
+                ◀
+              </button>
+              <button onClick={resetZoom}
+                className="w-7 h-7 bg-cyan-800/80 hover:bg-cyan-700 text-cyan-200 rounded text-[9px] font-bold flex items-center justify-center transition">
+                ⊙
+              </button>
+              <button onClick={() => pan(PAN_STEP, 0)}
+                className="w-7 h-7 bg-black/70 hover:bg-black/90 text-white rounded text-sm flex items-center justify-center transition">
+                ▶
+              </button>
+              <div />
+              <button onClick={() => pan(0, PAN_STEP)}
+                className="w-7 h-7 bg-black/70 hover:bg-black/90 text-white rounded text-sm flex items-center justify-center transition">
+                ▼
+              </button>
+              <div />
             </div>
           )}
         </div>
