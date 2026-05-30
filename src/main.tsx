@@ -11,6 +11,7 @@ import Autonomous from "./routes/autonomous";
 import Cameras from "./routes/cameras";
 import Rocas from "./routes/rocas";
 import Panorama from "./routes/panorama";
+import ScienceArm from "./routes/scienceArm";
 
 import "./main.css";
 
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
       { path: "cameras", element: <Cameras /> },
       { path: "rocas", element: <Rocas /> },
       { path: "panorama", element: <Panorama /> },
+      { path: "science-arm", element: <ScienceArm /> },
      
     ],
   },

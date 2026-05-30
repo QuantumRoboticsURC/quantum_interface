@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, Gamepad2, Bot, FlaskConical, Map, Navigation2, Gem, ScanLine } from "lucide-react";
+import { Home, Gamepad2, Bot, FlaskConical, Map, Navigation2, Gem, ScanLine, Wrench } from "lucide-react";
 import React from "react";
 import logo from "../assets/logos/quantum_logo.png";
 
@@ -8,6 +8,7 @@ const Sidebar: React.FC = () => {
     { to: "/", label: "Home", icon: <Home size={18} /> },
     { to: "/control", label: "Control", icon: <Gamepad2 size={18} /> },
     { to: "/arm", label: "Arm", icon: <Bot size={18} /> },
+    { to: "/science-arm", label: "Science Arm", icon: <Wrench size={18} /> },
     { to: "/laboratory", label: "Laboratory", icon: <FlaskConical size={18} /> },
     { to: "/stratigraphic-profile", label: "Stratigraphic Profile", icon: <Map size={18} /> },
     { to: "/autonomous-navigation", label: "Autonomous Nav", icon: <Navigation2 size={18} /> },

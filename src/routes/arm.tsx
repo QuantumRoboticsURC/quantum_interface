@@ -508,15 +508,15 @@ export default function Arm() {
             <h3 className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Linear Actuator</h3>
             <div className="flex gap-2">
               <button className="flex-1 bg-blue-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-500 transition select-none"
-                onMouseDown={() => sendWS({ type: "linear_actuator", data: 1 })}
+                onMouseDown={() => sendWS({ type: "linear_actuator", data: 0.5 })}
                 onMouseUp={() => sendWS({ type: "linear_actuator", data: 0 })}
-                onPointerDown={() => sendWS({ type: "linear_actuator", data: 1 })}
+                onPointerDown={() => sendWS({ type: "linear_actuator", data: 0.5 })}
                 onPointerUp={() => sendWS({ type: "linear_actuator", data: 0 })}
                 onMouseLeave={() => sendWS({ type: "linear_actuator", data: 0 })}>Extend</button>
               <button className="flex-1 bg-gray-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-500 transition select-none"
-                onMouseDown={() => sendWS({ type: "linear_actuator", data: -1 })}
+                onMouseDown={() => sendWS({ type: "linear_actuator", data: -0.5 })}
                 onMouseUp={() => sendWS({ type: "linear_actuator", data: 0 })}
-                onPointerDown={() => sendWS({ type: "linear_actuator", data: -1 })}
+                onPointerDown={() => sendWS({ type: "linear_actuator", data: -0.5 })}
                 onPointerUp={() => sendWS({ type: "linear_actuator", data: 0 })}
                 onMouseLeave={() => sendWS({ type: "linear_actuator", data: 0 })}>Retract</button>
             </div>
