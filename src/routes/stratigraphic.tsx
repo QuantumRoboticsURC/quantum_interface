@@ -190,20 +190,61 @@ async function processAll(cv2: any, imageSrc: string, p: ProcessingParams): Prom
   const bi = new cv2.Mat();
   cv2.bilateralFilter(satAdj, bi, d, 75, 75, cv2.BORDER_DEFAULT);
 
-  // Panel 2: Saturation channel as JET colormap
+  // Panel 2: Saturation channel as JET colormap (sky-masked)
+  // Blue sky has high HSV saturation and dominates the colormap, hiding rock detail.
+  // We detect sky pixels (blue hue + high brightness) and exclude them before
+  // normalizing, so the full JET range is used only on the rock/terrain region.
   {
     const hsv    = new cv2.Mat();
     cv2.cvtColor(bi, hsv, cv2.COLOR_BGR2HSV);
     const planes = new cv2.MatVector();
     cv2.split(hsv, planes);
     hsv.delete();
-    const hCh = planes.get(0); hCh.delete();
+    const hCh = planes.get(0);
     const sCh = planes.get(1);
-    const vCh = planes.get(2); vCh.delete();
+    const vCh = planes.get(2);
     planes.delete();
+
+    // Sky mask: hue in [90,130] (blue) AND saturation > 40 AND value > 80
+    const hLo = new cv2.Mat(), hHi = new cv2.Mat(), hMask = new cv2.Mat();
+    const sMask = new cv2.Mat(), vMask = new cv2.Mat();
+    const tmp = new cv2.Mat(), skyMask = new cv2.Mat();
+    cv2.threshold(hCh, hLo,  89, 255, cv2.THRESH_BINARY);
+    cv2.threshold(hCh, hHi, 130, 255, cv2.THRESH_BINARY_INV);
+    cv2.bitwise_and(hLo, hHi, hMask);
+    cv2.threshold(sCh, sMask, 40, 255, cv2.THRESH_BINARY);
+    cv2.threshold(vCh, vMask, 80, 255, cv2.THRESH_BINARY);
+    cv2.bitwise_and(hMask, sMask, tmp);
+    cv2.bitwise_and(tmp, vMask, skyMask);
+    hLo.delete(); hHi.delete(); hMask.delete();
+    sMask.delete(); vMask.delete(); tmp.delete();
+    hCh.delete(); vCh.delete();
+
+    // Dilate mask slightly to cover sky-edge halos
+    const k5 = cv2.getStructuringElement(cv2.MORPH_RECT, new cv2.Size(5, 5));
+    const skyDilated = new cv2.Mat();
+    cv2.dilate(skyMask, skyDilated, k5);
+    k5.delete(); skyMask.delete();
+
+    // Zero sky pixels then apply CLAHE to redistribute the saturation histogram
+    // locally. NORM_MINMAX stretches the range but the rock saturation distribution
+    // is skewed low, so most pixels stay blue in JET. CLAHE fixes this the same
+    // way it does for the grayscale panel.
+    sCh.setTo(new cv2.Scalar(0), skyDilated);
+    const claheS = new (cv2 as any).CLAHE(Math.max(1, p.clahe_clip), new cv2.Size(8, 8));
+    const sEnh = new cv2.Mat();
+    claheS.apply(sCh, sEnh);
+    claheS.delete(); sCh.delete();
+    sEnh.setTo(new cv2.Scalar(0), skyDilated);
+
     const jetMap = new cv2.Mat();
-    cv2.applyColorMap(sCh, jetMap, cv2.COLORMAP_JET);
-    sCh.delete();
+    cv2.applyColorMap(sEnh, jetMap, cv2.COLORMAP_JET);
+    sEnh.delete();
+
+    // Paint sky black so it doesn't mislead the eye
+    jetMap.setTo(new cv2.Scalar(0, 0, 0), skyDilated);
+    skyDilated.delete();
+
     results[2] = matToDataURL(cv2, jetMap);
     jetMap.delete();
   }
