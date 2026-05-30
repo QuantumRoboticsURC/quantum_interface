@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, Gamepad2, Bot, FlaskConical, Map, Navigation2, Gem } from "lucide-react";
+import { Home, Gamepad2, Bot, FlaskConical, Map, Navigation2, Gem, ScanLine } from "lucide-react";
 import React from "react";
 import logo from "../assets/logos/quantum_logo.png";
 
@@ -13,6 +13,7 @@ const Sidebar: React.FC = () => {
     { to: "/autonomous-navigation", label: "Autonomous Nav", icon: <Navigation2 size={18} /> },
     { to: "/cameras", label: "Cameras", icon: <Gamepad2 size={18} /> },
     { to: "/rocas", label: "Rocas", icon: <Gem size={18} /> },
+    { to: "/panorama", label: "Panorama", icon: <ScanLine size={18} /> },
   ];
 
   return (
@@ -39,7 +40,7 @@ const Sidebar: React.FC = () => {
               key={link.to}
               to={link.to}
               end={link.to === "/"}
-              className={({ isActive }) =>
+              className={({ isActive }: { isActive: boolean }) =>
                 `flex items-center gap-3 px-4 py-2 rounded-lg transition ${
                   isActive ? "bg-blue-600 text-white" : "hover:bg-gray-800"
                 }`
