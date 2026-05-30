@@ -181,7 +181,7 @@ const EMPTY_HISTORY = (): History => ({
 // ── SensorChart ───────────────────────────────────────────────────────────────
 interface Dataset { label: string; color: string; data: number[]; current: number; unit?: string }
 
-function SensorChart({ title, datasets }: { title: string; datasets: Dataset[] }) {
+function SensorChart({ title, datasets, action }: { title: string; datasets: Dataset[]; action?: React.ReactNode }) {
   const n = Math.max(...datasets.map((d) => d.data.length), 0);
   const labels = Array.from({ length: n }, (_, i) => {
     const ago = n - 1 - i;
@@ -190,7 +190,10 @@ function SensorChart({ title, datasets }: { title: string; datasets: Dataset[] }
   return (
     <div className="bg-gray-800 rounded-xl border border-gray-700 p-3 flex flex-col">
       <div className="flex items-start justify-between mb-1 flex-shrink-0">
-        <span className="text-xs font-bold text-gray-300">{title}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-gray-300">{title}</span>
+          {action}
+        </div>
         <div className="flex flex-col items-end gap-0.5">
           {datasets.map((d) => (
             <span key={d.label} className="text-[10px] font-mono" style={{ color: d.color }}>
@@ -231,6 +234,10 @@ export default function Laboratory() {
   const [history, setHistory]        = useState<History>(EMPTY_HISTORY);
   const [statusLog, setStatusLog]    = useState<string[]>([]);
   const [sensorsRunning, setSensors] = useState(false);
+
+  // Alcohol tare
+  const [alcTare1, setAlcTare1] = useState(0);
+  const [alcTare2, setAlcTare2] = useState(0);
 
   // LED
   const [ledOn, setLedOn] = useState(true);
@@ -484,10 +491,18 @@ export default function Laboratory() {
             { label: "MQ135-1", color: "#f59e0b", data: history.co2_1, current: mq135_1[0] ?? 0, unit: "ppm" },
             { label: "MQ135-2", color: "#fb923c", data: history.co2_2, current: mq135_2[0] ?? 0, unit: "ppm" },
           ]} />
-          <SensorChart title="Alcohol (ppm)" datasets={[
-            { label: "MQ135-1", color: "#8b5cf6", data: history.alc_1, current: mq135_1[1] ?? 0, unit: "ppm" },
-            { label: "MQ135-2", color: "#a78bfa", data: history.alc_2, current: mq135_2[1] ?? 0, unit: "ppm" },
-          ]} />
+          <SensorChart title="Alcohol (ppm)"
+            action={
+              <button
+                onClick={() => { setAlcTare1(mq135_1[1] ?? 0); setAlcTare2(mq135_2[1] ?? 0); }}
+                className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
+                Tare
+              </button>
+            }
+            datasets={[
+              { label: "MQ135-1", color: "#8b5cf6", data: history.alc_1.map(v => v - alcTare1), current: (mq135_1[1] ?? 0) - alcTare1, unit: "ppm" },
+              { label: "MQ135-2", color: "#a78bfa", data: history.alc_2.map(v => v - alcTare2), current: (mq135_2[1] ?? 0) - alcTare2, unit: "ppm" },
+            ]} />
           <SensorChart title="Amonio log (ratio)" datasets={[
             { label: "MQ135-1", color: "#ef4444", data: history.ami_1, current: mq135_1[2] ?? 0 },
             { label: "MQ135-2", color: "#f87171", data: history.ami_2, current: mq135_2[2] ?? 0 },
