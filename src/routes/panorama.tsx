@@ -3,6 +3,7 @@ import CompassRose, { bearingToCardinal } from "../components/CompassRose";
 
 const BRIDGE_HOST  = "192.168.1.3:8001";
 const IMU_WS_PATH  = "/ws/connection/move";
+const GPS_WS_URL   = "ws://localhost:8000/ws/connection/lab";
 const ZED_HFOV_DEG = 110;
 const MAX_FRAMES   = 10;
 
@@ -10,11 +11,13 @@ const MAX_FRAMES   = 10;
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 type CameraInfo = { id: number; label: string; stereo?: boolean };
+type GPS = { lat: number; lon: number };
 
 type Frame = {
   src: string;
   yaw: number;      // raw IMU yaw  (fed into CompassRose)
   bearing: number;  // compass 0=N  (used for stitcher sorting)
+  gps: GPS | null;  // coordinates at capture time
   takenAt: number;
   width: number;
   height: number;
@@ -25,6 +28,7 @@ type Pano = {
   yaw: number;     // center yaw  → CompassRose
   bearing: number; // center bearing (shown in UI)
   fovDeg: number;  // total horizontal FOV of the stitched image (for scale bar)
+  gps: GPS | null; // frozen GPS at capture / center frame for sweep
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,7 +62,7 @@ function stitchStereo(src: string, stripPct = 0.10): Promise<string> {
 // ─────────────────────────────────────────────────────────────────────────────
 async function stitchByHeading(frames: Frame[]): Promise<Pano> {
   if (frames.length === 1)
-    return { dataUrl: frames[0].src, yaw: frames[0].yaw, bearing: frames[0].bearing, fovDeg: ZED_HFOV_DEG };
+    return { dataUrl: frames[0].src, yaw: frames[0].yaw, bearing: frames[0].bearing, fovDeg: ZED_HFOV_DEG, gps: frames[0].gps };
 
   // Compute bearing offset relative to the first frame (handles 0/360 wrap)
   const ref = frames[0].bearing;
@@ -91,7 +95,7 @@ async function stitchByHeading(frames: Frame[]): Promise<Pano> {
   const centerBearing = ((ref + (minOff + maxOff) / 2) % 360 + 360) % 360;
   const centerYaw     = (90 - centerBearing + 360) % 360;
 
-  return { dataUrl: canvas.toDataURL("image/jpeg", 0.92), yaw: centerYaw, bearing: centerBearing, fovDeg: totalDeg };
+  return { dataUrl: canvas.toDataURL("image/jpeg", 0.92), yaw: centerYaw, bearing: centerBearing, fovDeg: totalDeg, gps: null };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -161,14 +165,19 @@ const PanoramaView: React.FC = () => {
   const [imgEl, setImgEl] = useState<HTMLImageElement | null>(null);
   const imgCallbackRef    = useCallback((el: HTMLImageElement | null) => setImgEl(el), []);
 
+  const [liveGps, setLiveGps] = useState<GPS | null>(null);
+
   const wsRef    = useRef<WebSocket | null>(null);
   const imuWsRef = useRef<WebSocket | null>(null);
+  const gpsWsRef = useRef<WebSocket | null>(null);
   const camIdRef = useRef<number | null>(null);
   const yawRef   = useRef(0);
   const modeRef  = useRef(mode);
+  const gpsRef   = useRef<GPS | null>(null);
 
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { yawRef.current  = liveYaw; }, [liveYaw]);
+  useEffect(() => { gpsRef.current  = liveGps; }, [liveGps]);
 
   const activePano = mode === "single" ? singlePano : sweepPano;
 
@@ -201,14 +210,15 @@ const PanoramaView: React.FC = () => {
           const stitched = await stitchStereo(raw);
           const yaw      = yawRef.current;
           const bearing  = ((90 - yaw) % 360 + 360) % 360;
+          const gps      = gpsRef.current;
           const el       = new Image();
           el.onload = () => {
             const frame: Frame = {
-              src: stitched, yaw, bearing,
+              src: stitched, yaw, bearing, gps,
               takenAt: Date.now(), width: el.naturalWidth, height: el.naturalHeight,
             };
             if (modeRef.current === "single") {
-              setSinglePano({ dataUrl: stitched, yaw, bearing, fovDeg: ZED_HFOV_DEG });
+              setSinglePano({ dataUrl: stitched, yaw, bearing, fovDeg: ZED_HFOV_DEG, gps });
             } else {
               setSweepFrames(prev => prev.length < MAX_FRAMES ? [...prev, frame] : prev);
             }
@@ -247,6 +257,30 @@ const PanoramaView: React.FC = () => {
     return () => { stop = true; clearTimeout(retry); imuWsRef.current?.close(); };
   }, []);
 
+  // ── GPS WebSocket ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    let stop = false;
+    let retry: ReturnType<typeof setTimeout>;
+    const connect = () => {
+      if (stop) return;
+      const ws = new WebSocket(GPS_WS_URL);
+      gpsWsRef.current = ws;
+      ws.onmessage = (e) => {
+        if (typeof e.data !== "string") return;
+        let msg: any; try { msg = JSON.parse(e.data); } catch { return; }
+        if (msg.type === "gps_data" && msg.data) {
+          const g = { lat: msg.data.latitude, lon: msg.data.longitude };
+          gpsRef.current = g;
+          setLiveGps(g);
+        }
+      };
+      ws.onclose = () => { if (!stop) retry = setTimeout(connect, 2000); };
+      ws.onerror = () => ws.close();
+    };
+    connect();
+    return () => { stop = true; clearTimeout(retry); gpsWsRef.current?.close(); };
+  }, []);
+
   // ── Actions ───────────────────────────────────────────────────────────────
   const capture = () => {
     const ws = wsRef.current;
@@ -260,7 +294,16 @@ const PanoramaView: React.FC = () => {
   const runStitch = async () => {
     if (sweepFrames.length < 2) { setError("Need at least 2 frames to stitch"); return; }
     setStitching(true); setError(null);
-    try   { setSweepPano(await stitchByHeading(sweepFrames)); }
+    try {
+      const result = await stitchByHeading(sweepFrames);
+      // Use GPS from the center frame (closest to the middle bearing)
+      const centerFrame = sweepFrames.reduce((best, f) => {
+        const da = Math.abs(((f.bearing - result.bearing + 540) % 360) - 180);
+        const db = Math.abs(((best.bearing - result.bearing + 540) % 360) - 180);
+        return da < db ? f : best;
+      });
+      setSweepPano({ ...result, gps: centerFrame.gps });
+    }
     catch { setError("Stitching failed — check frame headings"); }
     finally { setStitching(false); }
   };
@@ -335,13 +378,38 @@ const PanoramaView: React.FC = () => {
                 className="max-w-full max-h-full object-contain" />
               <CompassRose yaw={activePano.yaw} frozen />
               <ScaleBar distanceM={distanceM} fovDeg={activePano.fovDeg} imgEl={imgEl} />
+              {/* GPS overlay — frozen at capture time */}
+              <div className="absolute top-2 left-2 pointer-events-none select-none">
+                <div className="bg-black/65 backdrop-blur-sm rounded-lg px-2.5 py-2 font-mono">
+                  {activePano.gps ? (
+                    <>
+                      <p className="text-[10px] text-green-400 font-bold mb-1 tracking-widest">GPS</p>
+                      <p className="text-xs text-white leading-tight">{activePano.gps.lat.toFixed(7)}°</p>
+                      <p className="text-xs text-white leading-tight">{activePano.gps.lon.toFixed(7)}°</p>
+                    </>
+                  ) : (
+                    <p className="text-[10px] text-gray-500">No GPS</p>
+                  )}
+                </div>
+              </div>
             </>
           ) : liveFrame ? (
             <>
               <img src={liveFrame} alt="Live feed" className="max-w-full max-h-full object-contain" />
               <CompassRose yaw={liveYaw} frozen={false} />
-              <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm rounded px-2 py-1 text-xs text-white font-semibold">
-                {camLabel} · Live
+              {/* Live GPS indicator */}
+              <div className="absolute top-2 left-2 pointer-events-none select-none">
+                <div className="bg-black/65 backdrop-blur-sm rounded-lg px-2.5 py-2 font-mono">
+                  {liveGps ? (
+                    <>
+                      <p className="text-[10px] text-green-400 font-bold mb-1 tracking-widest animate-pulse">● GPS LIVE</p>
+                      <p className="text-xs text-white leading-tight">{liveGps.lat.toFixed(7)}°</p>
+                      <p className="text-xs text-white leading-tight">{liveGps.lon.toFixed(7)}°</p>
+                    </>
+                  ) : (
+                    <p className="text-[10px] text-gray-500 tracking-widest">GPS —</p>
+                  )}
+                </div>
               </div>
             </>
           ) : (
@@ -391,6 +459,32 @@ const PanoramaView: React.FC = () => {
                   className="w-full accent-amber-500 h-1 cursor-pointer" />
                 {imageWidthM !== null && (
                   <p className="text-xs text-gray-600 mt-1">Frame width ≈ {imageWidthM} m</p>
+                )}
+              </div>
+            </div>
+
+            {/* GPS status */}
+            <div>
+              <p className="text-xs text-gray-500 font-bold tracking-widest mb-2">GPS</p>
+              <div className="bg-gray-800 rounded-lg px-3 py-2 font-mono">
+                {liveGps ? (
+                  <>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                      <span className="text-[10px] text-green-400 font-bold tracking-widest">LIVE</span>
+                    </div>
+                    <p className="text-xs text-gray-300">{liveGps.lat.toFixed(7)}°</p>
+                    <p className="text-xs text-gray-300">{liveGps.lon.toFixed(7)}°</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-600">Sin señal GPS</p>
+                )}
+                {activePano?.gps && (
+                  <div className="mt-2 pt-2 border-t border-gray-700">
+                    <p className="text-[10px] text-amber-400 font-bold tracking-widest mb-1">CAPTURADO</p>
+                    <p className="text-xs text-gray-300">{activePano.gps.lat.toFixed(7)}°</p>
+                    <p className="text-xs text-gray-300">{activePano.gps.lon.toFixed(7)}°</p>
+                  </div>
                 )}
               </div>
             </div>
